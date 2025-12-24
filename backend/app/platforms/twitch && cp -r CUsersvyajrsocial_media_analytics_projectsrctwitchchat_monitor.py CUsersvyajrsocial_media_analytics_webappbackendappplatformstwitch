@@ -1,0 +1,123 @@
+"""Twitch API client for fetching stream data."""
+
+import requests
+import time
+
+
+class TwitchAPI:
+    """Client for interacting with the Twitch API."""
+
+    def __init__(self, client_id, client_secret):
+        """Initialize the Twitch API client.
+
+        Args:
+            client_id: Your Twitch application client ID
+            client_secret: Your Twitch application client secret
+        """
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.access_token = None
+        self.token_expires_at = 0
+        self.base_url = "https://api.twitch.tv/helix"
+
+    def _get_access_token(self):
+        """Obtain an OAuth access token from Twitch."""
+        url = "https://id.twitch.tv/oauth2/token"
+        params = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "client_credentials"
+        }
+
+        response = requests.post(url, params=params)
+        response.raise_for_status()
+
+        data = response.json()
+        self.access_token = data["access_token"]
+        # Set expiration time (subtract 60 seconds for safety margin)
+        self.token_expires_at = time.time() + data["expires_in"] - 60
+
+    def _ensure_valid_token(self):
+        """Ensure we have a valid access token."""
+        if not self.access_token or time.time() >= self.token_expires_at:
+            self._get_access_token()
+
+    def _make_request(self, endpoint, params=None):
+        """Make a request to the Twitch API.
+
+        Args:
+            endpoint: API endpoint path
+            params: Query parameters
+
+        Returns:
+            Response JSON data
+        """
+        self._ensure_valid_token()
+
+        headers = {
+            "Client-ID": self.client_id,
+            "Authorization": f"Bearer {self.access_token}"
+        }
+
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+
+        return response.json()
+
+    def get_user_id(self, username):
+        """Get user ID from username.
+
+        Args:
+            username: Twitch username
+
+        Returns:
+            User ID string or None if not found
+        """
+        data = self._make_request("users", params={"login": username})
+        users = data.get("data", [])
+
+        if users:
+            return users[0]["id"]
+        return None
+
+    def get_stream_info(self, username):
+        """Get current stream information.
+
+        Args:
+            username: Twitch username
+
+        Returns:
+            Dictionary with stream data or None if stream is offline
+        """
+        data = self._make_request("streams", params={"user_login": username})
+        streams = data.get("data", [])
+
+        if not streams:
+            return None
+
+        stream = streams[0]
+        return {
+            "viewer_count": stream.get("viewer_count", 0),
+            "game_name": stream.get("game_name", "Unknown"),
+            "title": stream.get("title", ""),
+            "is_live": True
+        }
+
+    def get_chat_settings(self, broadcaster_id):
+        """Get chat settings for a channel.
+
+        Note: Chat message count requires different approach (IRC/EventSub).
+        This is a placeholder for chat-related data.
+
+        Args:
+            broadcaster_id: Broadcaster user ID
+
+        Returns:
+            Dictionary with chat settings
+        """
+        try:
+            data = self._make_request("chat/settings", params={"broadcaster_id": broadcaster_id})
+            return data.get("data", [{}])[0]
+        except Exception:
+            return {}

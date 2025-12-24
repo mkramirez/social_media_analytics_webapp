@@ -1,0 +1,34 @@
+# Testing dependencies for Social Media Analytics Platform
+
+# Core testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-xdist==3.5.0  # Parallel test execution
+pytest-timeout==2.2.0  # Test timeouts
+pytest-mock==3.12.0  # Mocking utilities
+
+# API testing
+httpx==0.25.2  # Async HTTP client
+requests-mock==1.11.0  # Mock HTTP requests
+
+# Database testing
+pytest-postgresql==5.0.0  # PostgreSQL fixtures
+faker==20.1.0  # Generate fake data
+
+# Coverage and reporting
+coverage[toml]==7.4.0
+pytest-html==4.1.1  # HTML test reports
+
+# Code quality
+pytest-flake8==1.1.1
+pytest-pylint==0.21.0
+mypy==1.7.1  # Type checking
+
+# Performance testing
+pytest-benchmark==4.0.0
+locust==2.19.1  # Load testing
+
+# Mocking
+freezegun==1.4.0  # Mock datetime
+responses==0.24.1  # Mock requests
